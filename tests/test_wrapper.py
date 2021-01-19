@@ -9,6 +9,10 @@ TEST_ENV = [
     'DATABASE_URL=postgresql://username:password@localhost/database_name',
     'CACHE_URL=memcache://localhost:11211',
     'REDIS_URL=redis://localhost:6379/5',
+    'INTVALUE=225',
+    'FLOATVALUE=54.92',
+    'BOOLVALUETRUE=True',
+    'BOOLVALUEFALSE=off',
 ]
 
 
@@ -22,6 +26,29 @@ def test_env_wrapper():
     env = django_env.Env()
     assert 'HOME' in env
     assert 'USER' in env
+
+
+def test_env_int(monkeypatch):
+    monkeypatch.setattr(django_env.dot_env, 'open_env', dotenv)
+    env = django_env.Env(readenv=True)
+    assert env.int('INTVALUE', default=99) == 225
+    assert env.int('DEFAULTINTVALUE', default=981) == 981
+
+
+def test_env_float(monkeypatch):
+    monkeypatch.setattr(django_env.dot_env, 'open_env', dotenv)
+    env = django_env.Env(readenv=True)
+    assert env.float('FLOATVALUE', default=99.9999) == 54.92
+    assert env.float('DEFAULTFLOATVALUE', default=83.6) == 83.6
+
+
+def test_env_bool(monkeypatch):
+    monkeypatch.setattr(django_env.dot_env, 'open_env', dotenv)
+    env = django_env.Env(readenv=True)
+    assert env.bool('BOOLVALUETRUE', default=False)
+    assert env.bool('DEFAULTBOOLVALUETRUE', default=True)
+    assert not env.bool('BOOLVALUEFALSE', default=True)
+    assert not env.bool('DEFAULTBOOLVALUEFALSE', default=False)
 
 
 def test_env_inject(monkeypatch, capsys):
@@ -84,3 +111,14 @@ def test_env_email(monkeypatch):
     assert email['EMAIL_HOST'] == 'smtp.example.com'
     assert email['EMAIL_PORT'] == 587
     env['EMAIL_URL'] = 'smtps://user@example.com:secret@smtp.example.com:587'
+
+
+def test_env_search(monkeypatch):
+    monkeypatch.setattr(django_env.dot_env, 'open_env', dotenv)
+    with pytest.raises(KeyError):
+        env = django_env.Env()
+        env.read_env()
+        env.search_url()
+    env['SEARCH_URL'] = 'elasticsearch2://127.0.0.1:9200/index'
+    search = env.search_url()
+

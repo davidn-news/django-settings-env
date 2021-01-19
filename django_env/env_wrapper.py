@@ -81,11 +81,14 @@ class Env:
         import os
         return os.environ
 
-    def __init__(self, *args, environ: MutableMapping[str, str] = None, **kwargs):
+    def __init__(self, *args, environ: MutableMapping[str, str] = None, readenv=False, **kwargs):
         self._exception = self._EXCEPTION_CLS
         self._env = environ or self.os_env()
         self._env.update(args)
-        self._env.update(kwargs)
+        if readenv:
+            self.read_env(**kwargs)
+        else:
+            self._env.update(kwargs)
 
     def read_env(self, **kwargs):
         kwargs.setdefault('environ', self._env)
@@ -117,17 +120,15 @@ class Env:
 
     def int(self, var, default=None) -> int:
         val = self.get(var, default)
-        return self._int(val) if val is not None else None
+        return self._int(val)
 
     def float(self, var, default=None) -> float:
         val = self.get(var, default)
-        return val if isinstance(val, float) else float(val) if val is not None else None
+        return self._float(val)
 
     def bool(self, var, default=None) -> bool:
         val = self.get(var, default)
-        if isinstance(val, (bool, int)):
-            return not not val
-        return self._is_true(val)
+        return val if isinstance(val, (bool, int)) else self._is_true(val)
 
     @classmethod
     def _is_true(cls, val):
@@ -137,6 +138,10 @@ class Env:
     @classmethod
     def _int(cls, val):
         return val if isinstance(val, int) else int(val) if val and str.isdigit(val) else 0
+
+    @classmethod
+    def _float(cls, val):
+        return val if isinstance(val, float) else float(val) if val else 0
 
     def __contains__(self, var):
         return str(var) in self.env
