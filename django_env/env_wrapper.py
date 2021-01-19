@@ -151,7 +151,7 @@ class Env:
 
     def __getitem__(self, var):
         if var not in self:
-            raise self.exception(f'{var}')
+            raise self.exception(f"Key '{var}' not found")
         return self.get(var)
 
     def __delitem__(self, var):
