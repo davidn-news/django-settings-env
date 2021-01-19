@@ -51,21 +51,25 @@ def test_env_bool(monkeypatch):
     assert not env.bool('DEFAULTBOOLVALUEFALSE', default=False)
 
 
-def test_env_inject(monkeypatch, capsys):
+def test_env_exception():
+    class MyException(Exception):
+        pass
+    env = django_env.Env(exception=MyException)
+    with pytest.raises(MyException):
+        _ = env['UNDEFINEDVARIABLE']
+
+
+def test_env_contains(monkeypatch):
     monkeypatch.setattr(django_env.dot_env, 'open_env', dotenv)
     env = django_env.Env()
     # must be explicitly read in
     env.read_env()
     assert 'DATABASE_URL' in env
-    print(env['DATABASE_URL'])
+    assert env['DATABASE_URL'] == "postgresql://username:password@localhost/database_name"
     assert 'CACHE_URL' in env
-    print(env['CACHE_URL'])
+    assert env['CACHE_URL'] == "memcache://localhost:11211"
     assert 'REDIS_URL' in env
-    print(env['REDIS_URL'])
-    captured = capsys.readouterr()
-    assert captured.out == "postgresql://username:password@localhost/database_name\n" \
-                           "memcache://localhost:11211\n" \
-                           "redis://localhost:6379/5\n"
+    assert env['REDIS_URL'] == "redis://localhost:6379/5"
 
 
 def test_env_db(monkeypatch):

@@ -81,14 +81,14 @@ class Env:
         import os
         return os.environ
 
-    def __init__(self, *args, environ: MutableMapping[str, str] = None, readenv=False, **kwargs):
-        self._exception = self._EXCEPTION_CLS
+    def __init__(self, *args, environ: MutableMapping[str, str] = None, exception=None, readenv=False, **kwargs):
         self._env = environ or self.os_env()
         self._env.update(args)
         if readenv:
             self.read_env(**kwargs)
         else:
             self._env.update(kwargs)
+        self.exception = exception or self._EXCEPTION_CLS
 
     def read_env(self, **kwargs):
         kwargs.setdefault('environ', self._env)
