@@ -13,6 +13,7 @@ TEST_ENV = [
     'FLOATVALUE=54.92',
     'BOOLVALUETRUE=True',
     'BOOLVALUEFALSE=off',
+    'ALISTOFIPS=::1,127.0.0.1,mydomain.com'
 ]
 
 
@@ -49,6 +50,15 @@ def test_env_bool(monkeypatch):
     assert env.bool('DEFAULTBOOLVALUETRUE', default=True)
     assert not env.bool('BOOLVALUEFALSE', default=True)
     assert not env.bool('DEFAULTBOOLVALUEFALSE', default=False)
+
+
+def test_env_list(monkeypatch):
+    monkeypatch.setattr(django_env.dot_env, 'open_env', dotenv)
+    env = django_env.Env(readenv=True)
+    result = env.list('ALISTOFIPS')
+    assert isinstance(result, list)
+    assert len(result) == 3
+    assert result == ['::1', '127.0.0.1', 'mydomain.com']
 
 
 def test_env_exception():
@@ -114,7 +124,6 @@ def test_env_email(monkeypatch):
     assert email['EMAIL_HOST_PASSWORD'] == 'secret'
     assert email['EMAIL_HOST'] == 'smtp.example.com'
     assert email['EMAIL_PORT'] == 587
-    env['EMAIL_URL'] = 'smtps://user@example.com:secret@smtp.example.com:587'
 
 
 def test_env_search(monkeypatch):
@@ -125,4 +134,8 @@ def test_env_search(monkeypatch):
         env.search_url()
     env['SEARCH_URL'] = 'elasticsearch2://127.0.0.1:9200/index'
     search = env.search_url()
+    assert search['ENGINE'] == 'haystack.backends.elasticsearch2_backend.Elasticsearch2SearchEngine'
+    assert search['URL'] == 'http://127.0.0.1:9200'
+    assert search['INDEX_NAME'] == 'index' \
+
 

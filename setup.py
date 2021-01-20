@@ -6,7 +6,7 @@ except ImportError:
 
 setup(
     name='django-env',
-    version='0.1.0',
+    version='0.3.0',
     description='12factor.net support for django',
     author='David Nugent',
     author_email='david.nugent@news.com.au',

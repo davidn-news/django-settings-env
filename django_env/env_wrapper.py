@@ -2,6 +2,7 @@
 """
 Wrapper around os.environ
 """
+import re
 from typing import Any, MutableMapping
 from urllib.parse import urlparse, urlunparse, parse_qs, unquote_plus
 from .dot_env import load_env
@@ -130,6 +131,10 @@ class Env:
         val = self.get(var, default)
         return val if isinstance(val, (bool, int)) else self._is_true(val)
 
+    def list(self, var, default=None) -> list:
+        val= self.get(var, default)
+        return val if isinstance(val, (list, tuple)) else self._list(val)
+
     @classmethod
     def _is_true(cls, val):
         return val if isinstance(val, bool) else \
@@ -142,6 +147,10 @@ class Env:
     @classmethod
     def _float(cls, val):
         return val if isinstance(val, float) else float(val) if val else 0
+
+    @classmethod
+    def _list(cls, val):
+        return [] if val is None else re.split(r'\s*,\s*', str(val))
 
     def __contains__(self, var):
         return str(var) in self.env
