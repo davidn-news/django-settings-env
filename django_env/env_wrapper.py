@@ -31,7 +31,7 @@ DB_SCHEMES = {
     'sqlite': 'django.db.backends.sqlite3',
     'ldap': 'ldapdb.backends.ldap',
 }
-_DB_BASE_OPTIONS = ['CONN_MAX_AGE', 'ATOMIC_REQUESTS', 'AUTOCOMMIT']
+_DB_BASE_OPTIONS = ['CONN_MAX_AGE', 'ATOMIC_REQUESTS', 'AUTOCOMMIT', 'SSLMODE']
 
 DEFAULT_CACHE_ENV = 'CACHE_URL'
 CACHE_SCHEMES = {
@@ -119,6 +119,12 @@ class Env:
         if var in self.env:
             del self._env[var]
 
+    def is_all_set(self, *vars):
+        return all(v in self for v in vars)
+
+    def is_any_set(self, *vars):
+        return any(v in self for v in vars)
+
     def int(self, var, default=None) -> int:
         val = self.get(var, default)
         return self._int(val)
@@ -174,7 +180,7 @@ class Env:
 
     # Django-specific addons
 
-    def database_url(self, var=DEFAULT_DATABASE_ENV, default=None, engine=None, ssl_require=False):
+    def database_url(self, var=DEFAULT_DATABASE_ENV, default=None, engine=None, options=None):
         """
         Parse a url, mostly based on dj-database-url
         :param var:
@@ -240,33 +246,32 @@ class Env:
             else:
                 config['PORT'] = str(config['PORT'])
 
+        db_options = {}
         # Pass the query string into OPTIONS.
         if url.query:
-            options = {}
             for key, values in parse_qs(url.query).items():
                 if key.upper() in _DB_BASE_OPTIONS:
                     config.update({key.upper(): values[0]})
                 else:
-                    options.update({key: self._int(values[0])})
-            if ssl_require:
-                options['sslmode'] = 'require'
+                    db_options.update({key: self._int(values[0])})
 
             # Support for Postgres Schema URLs
-            if 'currentSchema' in options and engine in (
+            if 'currentSchema' in db_options and engine in (
                 'django.contrib.gis.db.backends.postgis',
                 'django.db.backends.postgresql_psycopg2',
                 'django_redshift_backend',
             ):
-                options['options'] = '-c search_path={0}'.format(options.pop('currentSchema'))
-            if options:
-                config['OPTIONS'] = options
+                db_options['options'] = '-c search_path={0}'.format(db_options.pop('currentSchema'))
 
+        if options:
+            db_options.update(options)
+        if db_options:
+            config['OPTIONS'] = db_options
         if engine:
             config['ENGINE'] = engine
-
         return config
 
-    def cache_url(self, var=DEFAULT_CACHE_ENV, default=None, backend=None):
+    def cache_url(self, var=DEFAULT_CACHE_ENV, default=None, backend=None, options=None):
         """ based on dj-cache-url
 
         :param url:
@@ -299,19 +304,21 @@ class Env:
             locations = [scheme + '://' + loc + url.path for loc in url.netloc.split(',')]
             config['LOCATION'] = locations[0] if len(locations) == 1 else locations
 
+        cache_options = {}
         if url.query:
-            options = {}
             for key, values in parse_qs(url.query).items():
                 opt = {key.upper(): values[0]}
                 if key.upper() in _CACHE_BASE_OPTIONS:
                     config.update(opt)
                 else:
-                    options.update(opt)
-            config['OPTIONS'] = options
+                    cache_options.update(opt)
 
+        if options:
+            cache_options.update(options)
+        config['OPTIONS'] = cache_options
         return config
 
-    def email_url(self, var=DEFAULT_EMAIL_ENV, default=None, backend=None):
+    def email_url(self, var=DEFAULT_EMAIL_ENV, default=None, backend=None, options=None):
         """ parse an email URL, based on django-environ """
         url = urlparse(self._check_var(var, default=default))
 
@@ -339,15 +346,19 @@ class Env:
         elif url.scheme == 'smtp+ssl':
             config['EMAIL_USE_SSL'] = True
 
+        email_options = {}
         if url.query:
-            options = {}
             for key, values in parse_qs(url.query).items():
                 opt = {key.upper(): self._int(values[0])}
                 if key.upper() in _EMAIL_BASE_OPTIONS:
                     config.update(opt)
                 else:
-                    options.update(opt)
-            config['OPTIONS'] = options
+                    email_options.update(opt)
+
+        if options:
+            email_options.update(options)
+        if email_options:
+            config['OPTIONS'] = email_options
 
         return config
 
@@ -393,7 +404,6 @@ class Env:
             return config
 
         if url.scheme.startswith('elasticsearch'):
-
             split = path.rsplit("/", 1)
 
             if len(split) > 1:
@@ -419,5 +429,4 @@ class Env:
         elif url.scheme == 'xapian':
             if 'FLAGS' in params.keys():
                 config['FLAGS'] = params['FLAGS'][0]
-
         return config
