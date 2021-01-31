@@ -92,6 +92,14 @@ class Env:
         self.exception = exception or self._EXCEPTION_CLS
 
     def read_env(self, **kwargs):
+        """
+        param: env_file: str
+        param: search_path: Union[None, Union[List[str], List[Path]], str]
+        param: overwrite
+        param: parents: bool
+        param: update: bool
+        environ: MutableMapping[str, str]
+        """
         kwargs.setdefault('environ', self._env)
         self._env = load_env(**kwargs)
 
@@ -115,6 +123,9 @@ class Env:
     def set(self, var, value=None):
         self.env[var] = str(value) if value is not None else value
 
+    def setdefault(self, var, value):
+        return self.env.setdefault(var, str(value) if value is not None else value)
+
     def unset(self, var):
         if var in self.env:
             del self._env[var]
@@ -135,14 +146,25 @@ class Env:
 
     def bool(self, var, default=None) -> bool:
         val = self.get(var, default)
-        return val if isinstance(val, (bool, int)) else self._is_true(val)
+        return val if isinstance(val, (bool, int)) else self.is_true(val)
 
     def list(self, var, default=None) -> list:
         val= self.get(var, default)
         return val if isinstance(val, (list, tuple)) else self._list(val)
 
+    def export(self, *args, **kwargs):
+        for arg in args:
+            if not isinstance(arg, (dict,)):
+                raise TypeError('export() requires either dictionaries or keyword=value pairs')
+            self.export(**arg)
+        for k, v in kwargs.items():
+            if v is None:
+                self.unset(k)
+            else:
+                self.set(k, v)
+
     @classmethod
-    def _is_true(cls, val):
+    def is_true(cls, val):
         return val if isinstance(val, bool) else \
             True if val and any([val.startswith(v) for v in cls.BOOLEAN_TRUE_STRINGS]) else False
 
@@ -383,7 +405,7 @@ class Env:
             if 'EXCLUDED_INDEXES' in params.keys():
                 config['EXCLUDED_INDEXES'] = params['EXCLUDED_INDEXES'][0].split(',')
             if 'INCLUDE_SPELLING' in params.keys():
-                config['INCLUDE_SPELLING'] = self._is_true(params['INCLUDE_SPELLING'][0])
+                config['INCLUDE_SPELLING'] = self.is_true(params['INCLUDE_SPELLING'][0])
             if 'BATCH_SIZE' in params.keys():
                 config['BATCH_SIZE'] = self._int(params['BATCH_SIZE'][0])
 

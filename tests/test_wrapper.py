@@ -69,6 +69,29 @@ def test_env_exception():
         _ = env['UNDEFINEDVARIABLE']
 
 
+def test_env_export():
+    env = django_env.Env()
+    assert 'MYVARIABLE' not in env
+    env.export(MYVARIABLE='somevalue')
+    assert env['MYVARIABLE'] == 'somevalue'
+    env.export(MYVARIABLE=None)
+    with pytest.raises(KeyError):
+        _ = env['MYVARIABLE']
+
+    values = dict(MYVARIABLE='somevalue', MYVARIABLE2=1, MYVARIABLE3='...')
+
+    env.export(values)
+    for k, v in values.items():
+        assert env[k] == str(v)
+    env.export({k: None for k in values.keys()})
+    assert not env.is_any_set([k for k in values.keys()])
+
+    env.export(**values)
+    for k, v in values.items():
+        assert env[k] == str(v)
+    env.export({k: None for k in values.keys()})
+    assert not env.is_any_set([k for k in values.keys()])
+
 def test_env_contains(monkeypatch):
     monkeypatch.setattr(django_env.dot_env, 'open_env', dotenv)
     env = django_env.Env()
@@ -136,6 +159,4 @@ def test_env_search(monkeypatch):
     search = env.search_url()
     assert search['ENGINE'] == 'haystack.backends.elasticsearch2_backend.Elasticsearch2SearchEngine'
     assert search['URL'] == 'http://127.0.0.1:9200'
-    assert search['INDEX_NAME'] == 'index' \
-
-
+    assert search['INDEX_NAME'] == 'index'
