@@ -148,6 +148,12 @@ def test_env_email(monkeypatch):
     assert email['EMAIL_HOST'] == 'smtp.example.com'
     assert email['EMAIL_PORT'] == 587
 
+    env['EMAIL_URL'] = 'amazonses://user@example.com'
+    email = env.email_url()
+    assert email['EMAIL_BACKEND'] == 'django_ses.SESBackend'
+    assert email['EMAIL_HOST_USER'] == 'user'
+    assert email['EMAIL_HOST'] == 'example.com'
+
 
 def test_env_search(monkeypatch):
     monkeypatch.setattr(django_env.dot_env, 'open_env', dotenv)

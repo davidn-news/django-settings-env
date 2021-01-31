@@ -8,11 +8,9 @@ from urllib.parse import urlparse, urlunparse, parse_qs, unquote_plus
 from .dot_env import load_env
 
 
-DJANGO_POSTGRES = 'django.db.backends.postgresql'
-REDIS_DRIVER = 'django_redis.cache.RedisCache'
-MYSQL_DRIVER = 'django.db.backends.mysql'
-
 DEFAULT_DATABASE_ENV = 'DATABASE_URL'
+DJANGO_POSTGRES = 'django.db.backends.postgresql'
+MYSQL_DRIVER = 'django.db.backends.mysql'
 DB_SCHEMES = {
     'postgres': DJANGO_POSTGRES,
     'postgresql': DJANGO_POSTGRES,
@@ -34,6 +32,7 @@ DB_SCHEMES = {
 _DB_BASE_OPTIONS = ['CONN_MAX_AGE', 'ATOMIC_REQUESTS', 'AUTOCOMMIT', 'SSLMODE']
 
 DEFAULT_CACHE_ENV = 'CACHE_URL'
+REDIS_CACHE = 'django_redis.cache.RedisCache'
 CACHE_SCHEMES = {
     'dbcache': 'django.core.cache.backends.db.DatabaseCache',
     'dummycache': 'django.core.cache.backends.dummy.DummyCache',
@@ -41,21 +40,25 @@ CACHE_SCHEMES = {
     'locmemcache': 'django.core.cache.backends.locmem.LocMemCache',
     'memcache': 'django.core.cache.backends.memcached.MemcachedCache',
     'pymemcache': 'django.core.cache.backends.memcached.PyLibMCCache',
-    'rediscache': REDIS_DRIVER,
-    'redis': REDIS_DRIVER,
+    'rediscache': REDIS_CACHE,
+    'redis': REDIS_CACHE,
 }
 _CACHE_BASE_OPTIONS = ['TIMEOUT', 'KEY_PREFIX', 'VERSION', 'KEY_FUNCTION', 'BINARY']
 
 DEFAULT_EMAIL_ENV = 'EMAIL_URL'
+EMAIL_AMAZON_SES = 'django_ses.SESBackend'
+EMAIL_SMTP = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_SCHEMES = {
-    'smtp': 'django.core.mail.backends.smtp.EmailBackend',
-    'smtps': 'django.core.mail.backends.smtp.EmailBackend',
-    'smtp+tls': 'django.core.mail.backends.smtp.EmailBackend',
-    'smtp+ssl': 'django.core.mail.backends.smtp.EmailBackend',
+    'smtp': EMAIL_SMTP,
+    'smtps': EMAIL_SMTP,
+    'smtp+tls': EMAIL_SMTP,
+    'smtp+ssl': EMAIL_SMTP,
     'consolemail': 'django.core.mail.backends.console.EmailBackend',
     'filemail': 'django.core.mail.backends.filebased.EmailBackend',
     'memorymail': 'django.core.mail.backends.locmem.EmailBackend',
-    'dummymail': 'django.core.mail.backends.dummy.EmailBackend'
+    'dummymail': 'django.core.mail.backends.dummy.EmailBackend',
+    'amazonses': EMAIL_AMAZON_SES,
+    'amazon-ses': EMAIL_AMAZON_SES,
 }
 _EMAIL_BASE_OPTIONS = ['EMAIL_USE_TLS', 'EMAIL_USE_SSL']
 
