@@ -320,7 +320,7 @@ class Env:
                 'LOCATION': url.netloc + url.path,
             })
 
-        if url.path and url.scheme in ['memcache', 'pymemcache']:
+        if url.path and url.scheme in ['unix', 'memcache', 'pymemcache']:
             config.update({
                 'LOCATION': 'unix:' + url.path,
             })
