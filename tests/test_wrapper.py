@@ -43,6 +43,18 @@ def test_env_float(monkeypatch):
     assert env.float('DEFAULTFLOATVALUE', default=83.6) == 83.6
 
 
+def test_is_true():
+    env = django_env.Env()
+    assert env.is_true(1)
+    assert env.is_true('1')
+    assert not env.is_true(0)
+    assert not env.is_true('0')
+    assert not env.is_true(b'0')
+    assert not env.is_true(False)
+    assert not env.is_true('False')
+    assert not env.is_true(None)
+
+
 def test_env_bool(monkeypatch):
     monkeypatch.setattr(django_env.dot_env, 'open_env', dotenv)
     env = django_env.Env(readenv=True)

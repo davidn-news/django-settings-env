@@ -77,7 +77,8 @@ class Env:
     """
     Wrapper around os.environ with .env enhancement and django support
     """
-    BOOLEAN_TRUE_STRINGS = ('T', 't', '1', 'on', 'ok', 'Y', 'y', 'en')
+    _BOOLEAN_TRUE_STRINGS = ('T', 't', '1', 'on', 'ok', 'Y', 'y', 'en')
+    _BOOLEAN_TRUE_BYTES = (s.encode('utf-8') for s in _BOOLEAN_TRUE_STRINGS)
     _EXCEPTION_CLS = KeyError
 
     @staticmethod
@@ -167,9 +168,17 @@ class Env:
                 self.set(k, v)
 
     @classmethod
+    def _true_values(cls, val):
+        return cls._BOOLEAN_TRUE_STRINGS if isinstance(val, str) else cls._BOOLEAN_TRUE_BYTES
+
+    @classmethod
     def is_true(cls, val):
-        return val if isinstance(val, bool) else \
-            True if val and any([val.startswith(v) for v in cls.BOOLEAN_TRUE_STRINGS]) else False
+        if val in (None, False, '', 0, '0'):
+            return False
+        if not isinstance(val, (str, bytes)):
+            return bool(val)
+        true_vals = cls._true_values(val)
+        return True if val and any([val.startswith(v) for v in true_vals]) else False
 
     @classmethod
     def _int(cls, val):
