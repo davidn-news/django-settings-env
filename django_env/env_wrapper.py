@@ -29,7 +29,7 @@ DB_SCHEMES = {
     'sqlite': 'django.db.backends.sqlite3',
     'ldap': 'ldapdb.backends.ldap',
 }
-_DB_BASE_OPTIONS = ['CONN_MAX_AGE', 'ATOMIC_REQUESTS', 'AUTOCOMMIT', 'SSLMODE']
+_DB_BASE_OPTIONS = ['CONN_MAX_AGE', 'ATOMIC_REQUESTS', 'AUTOCOMMIT', 'SSLMODE', 'HTTP_METHODS', 'READ_ONLY']
 
 DEFAULT_CACHE_ENV = 'CACHE_URL'
 REDIS_CACHE = 'django_redis.cache.RedisCache'
@@ -71,6 +71,25 @@ SEARCH_SCHEMES = {
     "xapian": "haystack.backends.xapian_backend.XapianEngine",
     "simple": "haystack.backends.simple_backend.SimpleEngine",
 }
+
+DEFAULT_QUEUE_ENV = 'QUEUE_URL'
+QUEUE_SCHEMES = {
+    'rabbitmq': {
+        'backend': 'mq.backends.rabbitmq_backend.create_backend',
+        'default-port': 5672,
+    },
+    'redis': {
+        'backend': REDIS_CACHE,
+        'default-port': 6379
+    },
+    'amazonsqs': {
+        'backend': 'mq.backends.sqs_backend.create_backend',
+    },
+    'amazon-sqs': {
+        'backend': 'mq.backends.sqs_backend.create_backend',
+    },
+}
+_QUEUE_BASE_OPTIONS = []
 
 
 class Env:
@@ -207,6 +226,8 @@ class Env:
         self.unset(var)
 
     def _check_var(self, var, default):
+        if not var:
+            return ''
         url = self.get(var, default=default) if var else default
         if not url:
             raise self.exception(f'Expected {var} is not set in environment')
@@ -300,7 +321,7 @@ class Env:
         if options:
             db_options.update(options)
         if db_options:
-            config['OPTIONS'] = db_options
+            config['OPTIONS'] = {k.upper(): v for k, v in db_options.items()}
         if engine:
             config['ENGINE'] = engine
         return config
@@ -348,7 +369,7 @@ class Env:
                     cache_options.update(opt)
 
         if options:
-            cache_options.update(options)
+            cache_options.update({k.upper(): v for k, v in options.items()})
         config['OPTIONS'] = cache_options
         return config
 
@@ -392,11 +413,11 @@ class Env:
         if options:
             email_options.update(options)
         if email_options:
-            config['OPTIONS'] = email_options
+            config['OPTIONS'] = {k.upper(): v for k, v in email_options.items()}
 
         return config
 
-    def search_url(self, var=DEFAULT_SEARCH_ENV, default=None, engine=None):
+    def search_url(self, var=DEFAULT_SEARCH_ENV, default=None, engine=None, options=None):
         """ parse a search URL, based on django-environ """
         url = urlparse(self._check_var(var, default=default))
 
@@ -451,16 +472,103 @@ class Env:
             if 'TIMEOUT' in params.keys():
                 config['TIMEOUT'] = self._int(params['TIMEOUT'][0])
             config['INDEX_NAME'] = index
-            return config
+        else:
+            config['PATH'] = '/' + path
 
-        config['PATH'] = '/' + path
+            if url.scheme == 'whoosh':
+                if 'STORAGE' in params.keys():
+                    config['STORAGE'] = params['STORAGE'][0]
+                if 'POST_LIMIT' in params.keys():
+                    config['POST_LIMIT'] = self._int(params['POST_LIMIT'][0])
+            elif url.scheme == 'xapian':
+                if 'FLAGS' in params.keys():
+                    config['FLAGS'] = params['FLAGS'][0]
 
-        if url.scheme == 'whoosh':
-            if 'STORAGE' in params.keys():
-                config['STORAGE'] = params['STORAGE'][0]
-            if 'POST_LIMIT' in params.keys():
-                config['POST_LIMIT'] = self._int(params['POST_LIMIT'][0])
-        elif url.scheme == 'xapian':
-            if 'FLAGS' in params.keys():
-                config['FLAGS'] = params['FLAGS'][0]
+        if options:
+            config.update({k.upper(): v for k, v in options.items()})
+
+        return config
+
+    def queue_url(self, var=DEFAULT_QUEUE_ENV, default=None, backend=None, options=None):
+        """
+        Parse a url, mostly based on dj-database-url
+        :param var:
+        :param default:
+        :param engine:
+        :param conn_max_age:
+        :param ssl_require:
+        :return:
+        """
+        url = self._check_var(var, default=default)
+
+        # otherwise parse the url as normal
+        url = urlparse(url)
+
+        path = url.path[1:]
+        path = unquote_plus(path.split('?', 2)[0])
+
+        conf = QUEUE_SCHEMES.get(url.scheme, {})
+        port = int(url.port) if url.port else conf.get('default-port', None)
+
+        config = {
+            'QUEUE_BACKEND': backend if backend is None else conf['backend']
+        }
+
+        if url.scheme.startswith('amazon'):
+            path = f'https://{url.hostname}'
+            if port:
+                path += f':{port}'
+            config.update({
+                'AWS_SQS_ENDPOINT': path
+            })
+
+        elif url.scheme.startswith('rabbit'):
+            config = {
+                'QUEUE_BACKEND': backend or config['QUEUE_BACKEND'],
+                'RABBITMQ_HOST': url.hostname or '',
+                'RABBITMQ_PORT': port
+            }
+            if not url.hostname:
+                config.update({
+                    'QUEUE_LOCATION': f"unix://{url.netloc}{url.path}",
+                    'RABBITMQ_LOCATION': f"unix://{url.netloc}{url.path}",
+                    'RABBITMQ_PORT': '',
+                })
+
+        elif url.scheme == 'redis':
+            scheme = url.scheme if url.hostname else 'unix'
+            locations = [f"{scheme}://{loc}{url.path}" for loc in url.netloc.split(',')]
+            if not backend:
+                config.update({
+                    'QUEUE_LOCATION': locations[0] if len(locations) == 1 else locations
+                })
+
+        else:
+            config.update({
+                'PATH': path or '',
+                'HOST': url.hostname,
+                'PORT': port or ''
+            })
+
+        if url.username:
+            config.update({
+                'USER': url.username or '',
+                'PASSWORD': url.password or '',
+            })
+
+        queue_options = {}
+        if url.query:
+            for key, values in parse_qs(url.query).items():
+                opt = {key.upper(): values[0]}
+                if key.upper() in _QUEUE_BASE_OPTIONS:
+                    config.update(opt)
+                else:
+                    queue_options.update(opt)
+
+        if options:
+            queue_options.update(options)
+        if queue_options:
+            config['OPTIONS'] = {k.upper(): v for k, v in queue_options.items()}
+
+        # return configuration.
         return config
