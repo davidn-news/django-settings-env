@@ -109,6 +109,7 @@ def test_env_contains(monkeypatch):
     env = django_env.Env()
     # must be explicitly read in
     env.read_env()
+
     assert 'DATABASE_URL' in env
     assert env['DATABASE_URL'] == "postgresql://username:password@localhost/database_name"
     assert 'CACHE_URL' in env
@@ -121,6 +122,7 @@ def test_env_db(monkeypatch):
     monkeypatch.setattr(django_env.dot_env, 'open_env', dotenv)
     env = django_env.Env()
     env.read_env()
+
     database = env.database_url()
     assert database['NAME'] == 'database_name'
     assert database['USER'] == 'username'
@@ -133,6 +135,7 @@ def test_env_memcached(monkeypatch):
     monkeypatch.setattr(django_env.dot_env, 'open_env', dotenv)
     env = django_env.Env()
     env.read_env()
+
     cache = env.cache_url()
     assert cache['LOCATION'] == 'localhost:11211'
     assert cache['BACKEND'] == 'django.core.cache.backends.memcached.MemcachedCache'
@@ -142,6 +145,7 @@ def test_env_redis(monkeypatch):
     monkeypatch.setattr(django_env.dot_env, 'open_env', dotenv)
     env = django_env.Env()
     env.read_env()
+
     cache = env.cache_url('REDIS_URL')
     assert cache['LOCATION'] == 'redis://localhost:6379/5'
     assert cache['BACKEND'] == 'django_redis.cache.RedisCache'
@@ -153,6 +157,7 @@ def test_env_email(monkeypatch):
         env = django_env.Env()
         env.read_env()
         env.email_url()
+
     env['EMAIL_URL'] = 'smtps://user@example.com:secret@smtp.example.com:587'
     email = env.email_url()
     assert email['EMAIL_HOST_USER'] == 'user@example.com'
@@ -173,8 +178,35 @@ def test_env_search(monkeypatch):
         env = django_env.Env()
         env.read_env()
         env.search_url()
+
     env['SEARCH_URL'] = 'elasticsearch2://127.0.0.1:9200/index'
     search = env.search_url()
     assert search['ENGINE'] == 'haystack.backends.elasticsearch2_backend.Elasticsearch2SearchEngine'
     assert search['URL'] == 'http://127.0.0.1:9200'
     assert search['INDEX_NAME'] == 'index'
+
+
+def test_env_queue(monkeypatch):
+    monkeypatch.setattr(django_env.dot_env, 'open_env', dotenv)
+    with pytest.raises(KeyError):
+        env = django_env.Env()
+        env.read_env()
+        env.queue_url()
+    env['QUEUE_URL'] = 'rabbitmq://localhost'
+    queue = env.queue_url(backend='mq.backends.RabbitMQ.create_queue')
+    assert queue['QUEUE_BACKEND'] == 'mq.backends.RabbitMQ.create_queue'
+    assert queue['RABBITMQ_HOST'] == 'localhost'
+    assert queue['RABBITMQ_PORT'] == 5672
+
+    env['QUEUE_URL'] = 'rabbitmq://localhost:5555'
+    queue = env.queue_url(backend='mq.backends.rabbitmq_backend.create_queue')
+    assert queue['RABBITMQ_PORT'] == 5555
+
+    env['QUEUE_URL'] = 'rabbitmq:/var/run/rabbitmq.sock'
+    queue = env.queue_url(backend='mq.backends.rabbitmq_backend.create_queue')
+    assert not queue['RABBITMQ_HOST']
+    assert not queue['RABBITMQ_PORT']
+    assert queue['RABBITMQ_LOCATION'] == 'unix:///var/run/rabbitmq.sock'
+
+    env['AWS_SQS_URL'] = 'amazon-sqs://2138954170.sqs.amazon.com/'
+    queue = env.queue_url('AWS_SQS_URL', backend='mq.backends.sqs_backend.create_queue')
