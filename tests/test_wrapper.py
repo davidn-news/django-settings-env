@@ -9,11 +9,13 @@ TEST_ENV = [
     'DATABASE_URL=postgresql://username:password@localhost/database_name',
     'CACHE_URL=memcache://localhost:11211',
     'REDIS_URL=redis://localhost:6379/5',
+    'QUOTED_VALUE="some double quoted value"',
     'INTVALUE=225',
     'FLOATVALUE=54.92',
     'BOOLVALUETRUE=True',
     'BOOLVALUEFALSE=off',
-    'ALISTOFIPS=::1,127.0.0.1,mydomain.com'
+    'LISTOFQUOTEDVALUES=1,"two",3,\'four\'',
+    'ALISTOFIPS=::1,127.0.0.1,mydomain.com',
 ]
 
 
@@ -67,10 +69,16 @@ def test_env_bool(monkeypatch):
 def test_env_list(monkeypatch):
     monkeypatch.setattr(django_env.dot_env, 'open_env', dotenv)
     env = django_env.Env(readenv=True)
+
     result = env.list('ALISTOFIPS')
     assert isinstance(result, list)
     assert len(result) == 3
     assert result == ['::1', '127.0.0.1', 'mydomain.com']
+
+    result = env.list('LISTOFQUOTEDVALUES')
+    assert isinstance(result, list)
+    assert len(result) == 4
+    assert result == ['1', 'two', '3', 'four']
 
 
 def test_env_exception():

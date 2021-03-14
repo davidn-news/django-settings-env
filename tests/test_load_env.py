@@ -25,6 +25,8 @@ SECOND=a-second-value
 THIRD=altnernative-third
 FIFTH=fifth-value
 COMBINED=${FIRST}:${THIRD}:${FIFTH}
+DOUBLE_QUOTED="a quoted value"
+SINGLE_QUOTED='a quoted value'
 """)
 
 
@@ -44,3 +46,10 @@ def test_load_env_overwrite(monkeypatch, envmap):
         assert var in env
     assert 'FIFTH' in env
     assert env['COMBINED'] == 'first-value:altnernative-third:fifth-value'
+
+def test_quoted_value(monkeypatch, envmap):
+    monkeypatch.setattr(django_env.dot_env, 'open_env', dotenv)
+    env = django_env.load_env(search_path=__file__, environ=envmap)
+    assert env['DOUBLE_QUOTED'] == 'a quoted value'
+    assert env['SINGLE_QUOTED'] == 'a quoted value'
+

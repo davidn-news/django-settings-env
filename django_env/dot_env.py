@@ -8,10 +8,17 @@ from typing import Union, List, MutableMapping
 __all__ = (
     'load_env',
     'load_dotenv',      # alias
+    'unquote',
 )
 
 DEFAULT_ENVKEY = 'DOTENV'
 DEFAULT_DOTENV = '.env'
+
+
+def unquote(line, quotes='"\''):
+    if line and line[0] in quotes and line[-1] == line[0]:
+        line = line[1:-1]
+    return line
 
 
 def _env_files(env_file: str, search_path: List[Path], parents: bool) -> List[str]:
@@ -62,7 +69,7 @@ def _process_env(env_file: str, search_path: List[Path], environ: MutableMapping
         if len(parts) == 2:
             key, val = parts
             if overwrite or key not in environ:
-                environ[key] = val
+                environ[key] = unquote(val)
 
     for env_path in _env_files(env_file, search_path, parents):
         with open_env(env_path) as f:

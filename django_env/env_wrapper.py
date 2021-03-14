@@ -5,7 +5,7 @@ Wrapper around os.environ
 import re
 from typing import Any, MutableMapping
 from urllib.parse import urlparse, urlunparse, parse_qs, unquote_plus
-from .dot_env import load_env
+from .dot_env import load_env, unquote
 
 
 DEFAULT_DATABASE_ENV = 'DATABASE_URL'
@@ -116,12 +116,13 @@ class Env:
 
     def read_env(self, **kwargs):
         """
-        param: env_file: str
-        param: search_path: Union[None, Union[List[str], List[Path]], str]
-        param: overwrite
-        param: parents: bool
-        param: update: bool
-        environ: MutableMapping[str, str]
+        :param kwargs: see load_env
+            env_file: str
+            search_path: Union[None, Union[List[str], List[Path]], str]
+            overwrite: bool
+            parents: bool
+            update: bool
+        :   MutableMapping[str, str]
         """
         kwargs.setdefault('environ', self._env)
         self._env = load_env(**kwargs)
@@ -153,11 +154,14 @@ class Env:
         if var in self.env:
             del self._env[var]
 
-    def is_all_set(self, *vars):
-        return all(v in self for v in vars)
+    def is_set(self, var):
+        return var in self
 
-    def is_any_set(self, *vars):
-        return any(v in self for v in vars)
+    def is_all_set(self, *_vars):
+        return all(v in self for v in _vars)
+
+    def is_any_set(self, *_vars):
+        return any(v in self for v in _vars)
 
     def int(self, var, default=None) -> int:
         val = self.get(var, default)
@@ -172,7 +176,7 @@ class Env:
         return val if isinstance(val, (bool, int)) else self.is_true(val)
 
     def list(self, var, default=None) -> list:
-        val= self.get(var, default)
+        val = self.get(var, default)
         return val if isinstance(val, (list, tuple)) else self._list(val)
 
     def export(self, *args, **kwargs):
@@ -209,7 +213,7 @@ class Env:
 
     @classmethod
     def _list(cls, val):
-        return [] if val is None else re.split(r'\s*,\s*', str(val))
+        return [] if val is None else [unquote(part) for part in re.split(r'\s*,\s*', str(val))]
 
     def __contains__(self, var):
         return str(var) in self.env
@@ -235,15 +239,15 @@ class Env:
 
     # Django-specific addons
 
-    def database_url(self, var=DEFAULT_DATABASE_ENV, default=None, engine=None, options=None):
+    def database_url(self, var=DEFAULT_DATABASE_ENV, *, default=None, engine=None, options=None):
         """
         Parse a url, mostly based on dj-database-url
-        :param var:
-        :param default:
-        :param engine:
-        :param conn_max_age:
-        :param ssl_require:
-        :return:
+
+        :param var: variable to use
+        :param default: default value if var is unset
+        :param engine: override parsed database engine
+        :param options: additional database options
+        :return: dictionary of database options
         """
         url = self._check_var(var, default=default)
         # shortcut to avoid urlparse
@@ -326,12 +330,14 @@ class Env:
             config['ENGINE'] = engine
         return config
 
-    def cache_url(self, var=DEFAULT_CACHE_ENV, default=None, backend=None, options=None):
+    def cache_url(self, var=DEFAULT_CACHE_ENV, *, default=None, backend=None, options=None):
         """ based on dj-cache-url
 
-        :param url:
-        :param backend:
-        :return:
+        :param var: variable to use
+        :param default: default variable
+        :param backend: override parsed backend
+        :param options: additional options
+        :return: dictionary of cache parameters
         """
         url = urlparse(self._check_var(var, default=default))
 
@@ -373,8 +379,14 @@ class Env:
         config['OPTIONS'] = cache_options
         return config
 
-    def email_url(self, var=DEFAULT_EMAIL_ENV, default=None, backend=None, options=None):
-        """ parse an email URL, based on django-environ """
+    def email_url(self, var=DEFAULT_EMAIL_ENV, *, default=None, backend=None, options=None):
+        """ parse an email URL, based on django-environ
+        :param var: environment variable to use
+        :param default: default value if var is unset
+        :param backend: override parsed email backend
+        :param options: specify email options (as dict)
+        :return: dictionary of email variables
+        """
         url = urlparse(self._check_var(var, default=default))
 
         path = url.path[1:]
@@ -417,8 +429,14 @@ class Env:
 
         return config
 
-    def search_url(self, var=DEFAULT_SEARCH_ENV, default=None, engine=None, options=None):
-        """ parse a search URL, based on django-environ """
+    def search_url(self, var=DEFAULT_SEARCH_ENV, *, default=None, engine=None, options=None):
+        """ parse a search URL from environment, based on django-environ
+        :param var: environment variable to use
+        :param default: default value if var is unset
+        :param engine: override parsed storage engine
+        :param options: specify storage options (as dict)
+        :return: dictionary of storage variables
+        """
         url = urlparse(self._check_var(var, default=default))
 
         path = url.path[1:]
@@ -489,15 +507,14 @@ class Env:
 
         return config
 
-    def queue_url(self, var=DEFAULT_QUEUE_ENV, default=None, backend=None, options=None):
+    def queue_url(self, var=DEFAULT_QUEUE_ENV, *, default=None, backend=None, options=None):
         """
         Parse a url, mostly based on dj-database-url
-        :param var:
-        :param default:
-        :param engine:
-        :param conn_max_age:
-        :param ssl_require:
-        :return:
+        :param var: environment variable to use
+        :param default: default value if var is unset
+        :param backend: override parsed backend
+        :param options: specify queue options (as dict)
+        :return: dictionary of queue variables
         """
         url = self._check_var(var, default=default)
 
