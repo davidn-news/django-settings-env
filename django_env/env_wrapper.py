@@ -29,7 +29,7 @@ DB_SCHEMES = {
     'sqlite': 'django.db.backends.sqlite3',
     'ldap': 'ldapdb.backends.ldap',
 }
-_DB_BASE_OPTIONS = ['CONN_MAX_AGE', 'ATOMIC_REQUESTS', 'AUTOCOMMIT', 'SSLMODE', 'HTTP_METHODS', 'READ_ONLY']
+_DB_BASE_OPTIONS = ['CONN_MAX_AGE', 'ATOMIC_REQUESTS', 'AUTOCOMMIT', 'SSLMODE', 'HTTP_METHODS', 'READ_ONLY', 'READONLY']
 
 DEFAULT_CACHE_ENV = 'CACHE_URL'
 REDIS_CACHE = 'django_redis.cache.RedisCache'
@@ -323,7 +323,11 @@ class Env:
                 db_options['options'] = '-c search_path={0}'.format(db_options.pop('currentSchema'))
 
         if options:
-            db_options.update(options)
+            for key, value in options.items():
+                if key.upper() in _DB_BASE_OPTIONS:
+                    config.update({key.upper(): value})
+                else:
+                    db_options.update({key: value})
         if db_options:
             config['OPTIONS'] = {k.upper(): v for k, v in db_options.items()}
         if engine:
