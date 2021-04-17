@@ -118,6 +118,9 @@ def load_env(env_file: str = None, search_path: Union[None, Union[List[str], Lis
     if not env_file:
         env_file = environ.get(DEFAULT_ENVKEY, DEFAULT_DOTENV)
 
+    # insert this as a useful default, login shells only define it locally
+    environ.setdefault('PWD', str(Path.cwd().resolve(strict=True)))
+
     # determine where to search
     if search_path is None:
         import inspect
