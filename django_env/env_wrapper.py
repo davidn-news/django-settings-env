@@ -148,6 +148,11 @@ class Env:
     def get(self, var, default=None):
         return self.env.get(var, default)
 
+    def pop(self, var, default=None):
+        val = self.get(var, default)
+        self.unset(var)
+        return val
+
     def set(self, var, value=None):
         self.env[var] = str(value) if value is not None else value
 
