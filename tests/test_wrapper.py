@@ -81,6 +81,27 @@ def test_env_list(monkeypatch):
     assert result == ['1', 'two', '3', 'four']
 
 
+def test_env_iter(monkeypatch):
+    monkeypatch.setattr(django_env.dot_env, 'open_env', dotenv)
+    env = django_env.Env(readenv=True, update=False)
+
+    # test items() itself (returned by __iter__)
+    for var, val in env.items():
+        assert isinstance(var, str)
+        assert isinstance(val, str)
+
+    # test __iter__ via list()
+    for var, val in list(env):
+        assert isinstance(var, str)
+        assert isinstance(val, str)
+
+    # test __iter__ via dict()
+    for var, val in dict(env).items():
+        assert isinstance(var, str)
+        assert isinstance(val, str)
+
+
+
 def test_env_exception():
     class MyException(Exception):
         pass

@@ -238,9 +238,12 @@ class Env:
     def __delitem__(self, var):
         self.unset(var)
 
-    def __iter__(self):
-        for var, val in self.env:
+    def items(self):
+        for var, val in self.env.items():
             yield var, val
+
+    def __iter__(self):
+        return self.items()
 
     def _check_var(self, var, default):
         if not var:
