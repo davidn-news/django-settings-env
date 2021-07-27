@@ -7,7 +7,7 @@ except ImportError:
 setup(
     name='django-env',
     version=open('version').read().strip(),
-    description='12factor.net support for django',
+    description='12factor.net/smart-env support for Django',
     author='David Nugent',
     author_email='david.nugent@news.com.au',
     long_description=open('README.md').read(),
