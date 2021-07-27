@@ -12,6 +12,9 @@ setup(
     author_email='david.nugent@news.com.au',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
+    dependency_links=[
+        'git+http://github.com/davidn-news/smart-env.git'
+    ],
     packages=[
         'django_env',
     ],

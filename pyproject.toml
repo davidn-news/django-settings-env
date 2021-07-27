@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "django-env"
+version = "0.1.0"
+description = ""
+authors = ["David Nugent <davidn@uniquode.io>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+Django = "^3.2"
+smart-env = {git = "https://github.com/davidn-news/smart-env.git", rev = "main"}
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.2.4"
+pytest-pythonpath = "^0.7.3"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
