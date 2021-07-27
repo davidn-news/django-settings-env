@@ -10,7 +10,7 @@ setup(
     description='12factor.net/smart-env support for Django',
     author='David Nugent',
     author_email='david.nugent@news.com.au',
-    long_description=open('README.md').read(),
+    long_description=open('README.rst').read(),
     long_description_content_type='text/markdown',
     dependency_links=[
         'git+http://github.com/davidn-news/smart-env.git'
