@@ -7,7 +7,7 @@ authors = ["David Nugent <davidn@uniquode.io>"]
 [tool.poetry.dependencies]
 python = "^3.9"
 Django = "^3.2"
-smart-env = {git = "https://github.com/davidn-news/smart-env.git", rev = "main"}
+smart-env = {git = "https://github.com/apnarm/smart-env.git", rev = "main"}
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.4"

@@ -153,7 +153,7 @@ develop = false
 
 [package.source]
 type = "git"
-url = "https://github.com/davidn-news/smart-env.git"
+url = "https://github.com/apnarm/smart-env.git"
 reference = "main"
 resolved_reference = "212da16de03ff8fdfbae32e0f55b771135a10dda"
 
@@ -176,7 +176,7 @@ python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "28652b34d8aa56cd35fa14b23f017d0f7aa89440f519d59b37520931ccea7745"
+content-hash = "d9708c06dff59f9dabc0cc5f60f3410f17c027e94856b2040be4c02bc923a38d"
 
 [metadata.files]
 asgiref = [
