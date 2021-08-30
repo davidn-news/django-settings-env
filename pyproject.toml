@@ -1,12 +1,12 @@
 [tool.poetry]
 name = "django-env"
-version = "0.1.0"
-description = ""
+version = "2.1.0"
+description = "Django specific functionality for smart-env"
 authors = ["David Nugent <davidn@uniquode.io>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-Django = "^3.2"
+Django = "^3.0"
 smart-env = {git = "https://github.com/apnarm/smart-env.git", rev = "main"}
 
 [tool.poetry.dev-dependencies]
