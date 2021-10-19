@@ -7,11 +7,11 @@ envex
 ---------
 
 The functionality outlined in this section is derived from the dependent package
-`envex`, the docs for which are repeated below.
+`envex`, the docs for which are partially repeated below.
 
 Skip to the Django Support section for functionality added by this extension.
 
-`envex` provides a convenient interface for handling the environment, and therefore
+`envex` provides a convenient type-smart interface for handling the environment, and therefore
 configuration of any application using 12factor.net principals removing many environment specific
 variables and security sensitive information from application code.
 
@@ -27,8 +27,8 @@ Django Support
 
 By default, the Env class provided by this module can apply a given prefix (default "DJANGO_")
 to environment variables names, but will only be used in that form if the raw (unprefixed)
-variable name is not set in the environment. To suppress application of any prefix, pass the
-prefix=None kwarg to `Env.__init__`.
+variable name is not set in the environment. To change the prefix including setting it to
+an empty string, pass the prefix= kwarg to `Env.__init__`.
 
 Some django specific methods included in this module are URL parsers for:
 
@@ -146,3 +146,18 @@ Schemas:
 Django Class Settings
 ---------------------
 
+Support for the `django-class-settings` module is added to the env handler, allowing
+a much simplified use withing a class_settings.Settings class, e.g.:
+
+```python
+from django_settings_env import Env
+from class_settings import Settings
+
+env = Env(prefix='DJANGO_')
+
+class MySettings(Settings):
+    MYSETTING = env()
+```
+
+This usage will look for 'MYSETTING' or 'DJANGO_MYSETTNG' in the environment and lazily
+assign it to the MYSETTING value for the settings class.
