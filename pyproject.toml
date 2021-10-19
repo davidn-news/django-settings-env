@@ -1,17 +1,30 @@
 [tool.poetry]
-name = "django-env"
-version = "2.1.0"
-description = "Django specific functionality for smart-env"
+name = "django-settings-env"
+version = "3.0.0"
+description = "12-factor.net settings support for Django based on envex"
 authors = ["David Nugent <davidn@uniquode.io>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
 Django = "^3.0"
-smart-env = {git = "https://github.com/apnarm/smart-env.git", rev = "main"}
+envex = "^1.0"
+django-class-settings = { version = "^0.2", optional = true }
 
 [tool.poetry.dev-dependencies]
-pytest = "^6.2.4"
-pytest-pythonpath = "^0.7.3"
+pytest = "*"
+pytest-pythonpath = "*"
+
+[tool.poetry.extras]
+django-class-settings = ["django-class-settings"]
+
+[tool.pytest.ini-options]
+minversion = "6.0"
+python_paths = [
+    "django_settings_env"
+]
+testpaths = [
+    "tests"
+]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

@@ -4,8 +4,9 @@ Wrapper around os.environ with django config value parsers
 """
 from urllib.parse import urlparse, urlunparse, parse_qs, unquote_plus
 
+from django.core.exceptions import ImproperlyConfigured
 from django.utils.encoding import smart_str
-from smart_env import Env
+from envex import Env
 
 DEFAULT_DATABASE_ENV = 'DATABASE_URL'
 DJANGO_POSTGRES = 'django.db.backends.postgresql'
@@ -94,12 +95,54 @@ QUEUE_SCHEMES = {
 }
 _QUEUE_BASE_OPTIONS = []
 
+_DEFAULT_ENV_PREFIX = 'DJANGO_'
+
+_DEFAULT_PREFIX = object()
+
 
 class DjangoEnv(Env):
     """
     Wrapper around os.environ with .env enhancement and django support
     """
-    # Django-specific addons
+
+    def __init__(self, *args, **kwargs):
+        self.prefix = kwargs.pop('prefix', _DEFAULT_ENV_PREFIX)
+        exception = kwargs.pop('exception', ImproperlyConfigured)
+        super(DjangoEnv, self).__init__(*args, exception=exception, **kwargs)
+
+    def get(self, var, default=None, prefix=_DEFAULT_PREFIX):
+        if prefix is _DEFAULT_PREFIX:
+            prefix = self.prefix
+        if var and prefix and not var.startswith(prefix) and not self.is_set(var):
+            var = f"{prefix}{var}"
+        return super().get(var, default)
+
+    def check_var(self, var, default=None, raise_error=True):
+        """
+        override to insert prefix unless the raw var is set
+        """
+        if var and self.prefix and not var.startswith(self.prefix) and not self.is_set(var):
+            var = f"{self.prefix}{var}"
+        return super(DjangoEnv, self).check_var(var, default=default, raise_error=raise_error)
+
+    def __call__(self, var=None, default=None, prefix=_DEFAULT_PREFIX, optional=False, raise_error=False):
+        # This is tied to django-class-settings (optional dependency), which allows
+        # omitting the 'name' parameter and using the setting name instead'
+        if var is None:
+            try:
+                # noinspection PyUnresolvedReferences
+                from class_settings.env import DeferredEnv
+
+                kwargs = {"name": var, "prefix": prefix if prefix is None else self.prefix, "default": default}
+                return DeferredEnv(self, kwargs=kwargs, optional=optional)
+            except ImportError:
+                # class settings not installed
+                pass
+        if raise_error and not self.is_set(var):
+            self.exception(f"Expected '{var}' is not set in environment")
+        return self.get(var, prefix=None, default=default)
+
+    # Django-specific additions
 
     def database_url(self, var=DEFAULT_DATABASE_ENV, *, default=None, engine=None, options=None):
         """

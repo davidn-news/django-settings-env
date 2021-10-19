@@ -1,7 +1,16 @@
 import contextlib
 import io
 import pytest
-from django_env import Env, dot_env
+
+from django.core.exceptions import ImproperlyConfigured
+
+from django_settings_env import Env, dot_env
+
+try:
+    import class_settings
+except ImportError:
+    class_settings = None
+
 
 
 TEST_ENV = [
@@ -60,7 +69,7 @@ def test_env_redis(monkeypatch):
 
 def test_env_email(monkeypatch):
     monkeypatch.setattr(dot_env, 'open_env', dotenv)
-    with pytest.raises(KeyError):
+    with pytest.raises(ImproperlyConfigured):
         env = Env()
         env.read_env()
         env.email_url()
@@ -81,7 +90,7 @@ def test_env_email(monkeypatch):
 
 def test_env_search(monkeypatch):
     monkeypatch.setattr(dot_env, 'open_env', dotenv)
-    with pytest.raises(KeyError):
+    with pytest.raises(ImproperlyConfigured):
         env = Env()
         env.read_env()
         env.search_url()
@@ -95,7 +104,7 @@ def test_env_search(monkeypatch):
 
 def test_env_queue(monkeypatch):
     monkeypatch.setattr(dot_env, 'open_env', dotenv)
-    with pytest.raises(KeyError):
+    with pytest.raises(ImproperlyConfigured):
         env = Env()
         env.read_env()
         env.queue_url()
@@ -117,3 +126,17 @@ def test_env_queue(monkeypatch):
 
     env['AWS_SQS_URL'] = 'amazon-sqs://2138954170.sqs.amazon.com/'
     queue = env.queue_url('AWS_SQS_URL', backend='mq.backends.sqs_backend.create_queue')
+
+
+@pytest.mark.skipIf(class_settings is None)
+def test_settings_env(monkeypatch):
+    monkeypatch.setattr(dot_env, 'open_env', dotenv)
+    env = Env(readenv=True)
+
+    class MySettings(class_settings.Settings):
+        DATABASE_URL = env()
+        CACHES = {'default': env.cache_url()}
+
+    assert MySettings.DATABASE_URL == env['DATABASE_URL']
+    assert isinstance(MySettings.CACHES['default'], dict)
+    assert MySettings.CACHES['default']['LOCATION'] == 'localhost:11211'

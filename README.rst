@@ -1,83 +1,34 @@
-----------
-django-env
-----------
-Customised environment handler for Django
+-------------------
+django-settings-env
+-------------------
+12-factor.net settings environment handler for Django
 
-smart-env
+envex
 ---------
 
 The functionality outlined in this section is derived from the dependent package
-`smart-env`, the docs for which are repeated below.
+`envex`, the docs for which are repeated below.
+
 Skip to the Django Support section for functionality added by this extension.
 
-This module provides a convenient interface for handling the environment,
-and therefore application configuration using 12factor.net principals.
+`envex` provides a convenient interface for handling the environment, and therefore
+configuration of any application using 12factor.net principals removing many environment specific
+variables and security sensitive information from application code.
 
 This module provides some features not supported by other dotenv handlers
-(python-dotenv, django-environ etc.) including expansion of template variables 
-which is very useful for DRY, and in addition adds similar functionalty to 
-that found in django-environ and dropping the now defunct python2 support 
-completely.
+(python-dotenv, etc.) including expansion of template variables which is very useful
+for DRY.
 
-An `Env` instance delivers a lot of functionality by providing a type-smart
-front-end to `os.environ`, with support for most - if not all - `os.environ`
-functionality.
-::
-    from django_env import Env
+More detailed info can be found in the `envex` README.
 
-    env = Env()         # by default, sources (and updates) os.environ
-    assert env['HOME'] ==  '/Users/davidn'
-    env['TESTING'] = 'This is a test'
-    assert env['TESTING'] == 'This is a test'
-
-    import os
-    assert os.environ['TESTING'] == 'This is a test'
-
-    assert env.get('UNSET_VAR') is None
-    env.set('UNSET_VAR', 'this is now set')
-    assert env.get('UNSET_VAR') is not None
-    env.setdefault('UNSET_VAR', 'and this is a default value but only if not set')
-    assert env.get('UNSET_VAR') == 'this is now set'
-    del env['UNSET_VAR']
-    assert env.get('UNSET_VAR') is None
-
-An Env instance can also read a `.env` (default name) file and update the
-environment accordingly.
-It can read this either from the constructor or via the method `read_env()`.
-
-Some type-smart functions act as an alternative to `Env.get` and having to
-parse the result::
-    from django_env import Env
-
-    env = Env()         # by default, sources (and updates) os.environ
-
-    env['AN_INTEGER_VALUE'] = 2875083
-    assert env.get('AN_INTEGER_VALUE') == '2875083'
-    assert env.int('AN_INTEGER_VALUE') == 2875083
-
-    env['A_TRUE_VALUE'] = True
-    assert env.get('A_TRUE_VALUE') == 'True'
-    assert env.bool('A_TRUE_VALUE') is True
-
-    env['A_FALSE_VALUE'] = 0
-    assert env.get('A_FALSE_VALUE') == '0'
-    assert env.int('A_FALSE_VALUE') == 0
-    assert env.bool('A_FALSE_VALUE') is False
-
-    env['A_FLOAT_VALUE'] = 287.5083
-    assert env.get('A_FLOAT_VALUE') == '287.5083'
-    assert env.float('A_FLOAT_VALUE') == 287.5083
-
-    env['A_LIST_VALUE'] = '1,"two",3,"four"'
-    assert env.get('A_LIST_VALUE') == '1,"two",3,"four"'
-    assert env.list('A_LIST_VALUE') == ['1', 'two', '3', 'four']
-
-Note that environment variables are always stored as strings. This is
-enforced by the underlying os.environ, but also also true of any provided
-environment, using the `MutableMapping[str, str]` contract.
 
 Django Support
 --------------
+
+By default, the Env class provided by this module can apply a given prefix (default "DJANGO_")
+to environment variables names, but will only be used in that form if the raw (unprefixed)
+variable name is not set in the environment. To suppress application of any prefix, pass the
+prefix=None kwarg to `Env.__init__`.
 
 Some django specific methods included in this module are URL parsers for:
 
@@ -90,7 +41,9 @@ Some django specific methods included in this module are URL parsers for:
 | QUEUE_URL      | `env.queue_url()`
 
 each of which can be injected into django settings via the environment, typically
-from a .env file. The name of the file and paths search is fully customisable.
+from a .env file at the project root.
+
+The name of the file and paths searched is fully customisable.
 
 The url specified includes a schema that determines the "backend" class or module
 that handles the corresponding functionality as documented below.
@@ -188,3 +141,8 @@ Schemas:
 | redis           | Redis
 | amazonsqs       | Amazon SQS
 | amazon-sqs      | alias for Amazon SQS
+
+
+Django Class Settings
+---------------------
+

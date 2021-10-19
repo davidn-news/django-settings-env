@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from smart_env import dot_env
-from smart_env.dot_env import load_env, load_dotenv
+from envex import dot_env
+from envex.dot_env import load_env, load_dotenv
 from .env_django import DjangoEnv as Env
 
 
