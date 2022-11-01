@@ -162,5 +162,5 @@ This usage will look for 'MYSETTING' or 'DJANGO_MYSETTNG' in the environment and
 assign it to the MYSETTING value for the settings class.
 
 > :warning: The functional form of env() is now available even if django class settings is not
-used or installed as it is now provided by `envex` as well.
+used or installed.
 

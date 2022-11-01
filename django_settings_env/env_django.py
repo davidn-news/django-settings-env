@@ -129,15 +129,18 @@ class DjangoEnv(Env):
         # This is tied to django-class-settings (optional dependency), which allows
         # omitting the 'name' parameter and using the setting name instead'
         if var is None:
+            kwargs = {"name": var, "prefix": prefix if prefix is None else self.prefix, "default": default}
+            # try using class_settings version if installed
             try:
                 # noinspection PyUnresolvedReferences
                 from class_settings.env import DeferredEnv
-
-                kwargs = {"name": var, "prefix": prefix if prefix is None else self.prefix, "default": default}
                 return DeferredEnv(self, kwargs=kwargs, optional=optional)
             except ImportError:
-                # class settings not installed
                 pass
+            # otherwise use our own implementation (handles module level vars)
+            from .deferred import DeferredSetting
+            # class settings not installed
+            return DeferredSetting(env=self, kwargs=kwargs)
         if raise_error and not self.is_set(var):
             self.exception(f"Expected '{var}' is not set in environment")
         return self.get(var, prefix=None, default=default)
